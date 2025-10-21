@@ -29,7 +29,7 @@ def ifnotmake(out_path):
 # %%
 
 
-def gettem(outpath, stemmo, pathos):
+def gettem(pathos, stemmo='audio.mp3'):
     ifnotmake(outpath)
 
     r = requests.get(pathos)
@@ -46,9 +46,7 @@ def gettem(outpath, stemmo, pathos):
 
     response = requests.get(mp3_url, stream=True)
 
-    with open(f"{outpath}/{stemmo}.mp3", 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+
 
 
 
