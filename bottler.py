@@ -12,7 +12,8 @@ def is_abc_url(url: str) -> bool:
     except Exception:
         return False
 
-def find_audio_url(page_url: str, prefer_mp3: bool, timeout: int = 10) -> str | None:
+def find_audio_url(page_url: str, prefer_mp3: bool = True, timeout: int = 10) -> str | None:
+    """Find the first .mp3 or .aac file on the page."""
     r = requests.get(
         page_url, timeout=timeout,
         headers={"User-Agent": "BottleFetcher/1.0 (+https://example.invalid)"}
@@ -20,8 +21,7 @@ def find_audio_url(page_url: str, prefer_mp3: bool, timeout: int = 10) -> str | 
     r.raise_for_status()
 
     soup = bs(r.text, "html.parser")
-    ext = "mp3" if prefer_mp3 else "aac"
-    pattern = rf"https?://[^\s\"']+\.{ext}(?:[?#][^\s\"']*)?"
+    pattern = r"https?://[^\s\"']+\.(?:mp3|aac)(?:[?#][^\s\"']*)?"
 
     for tag in soup.select("audio[src], source[src]"):
         src = tag.get("src")
@@ -57,7 +57,6 @@ def stream_audio(audio_url: str, timeout: int = 15):
                 yield chunk
     return generate()
 
-
 ####
 
 @app.get("/")
@@ -88,18 +87,15 @@ def fetcher():
         response.status = 400
         return "Please provide a URL starting with https://www.abc.net.au/."
 
-    prefer_mp3 = "radionational" in url.lower()
-
     try:
-        audio_url = find_audio_url(url, prefer_mp3)
+        audio_url = find_audio_url(url)
     except requests.exceptions.RequestException as e:
         response.status = 502
         return f"Failed to fetch page: {html.escape(str(e))}"
 
     if not audio_url:
         response.status = 404
-        kind = "MP3" if prefer_mp3 else "AAC"
-        return f"Could not find a {kind} URL on that page."
+        return "Could not find an MP3 or AAC URL on that page."
 
     try:
         return stream_audio(audio_url)
